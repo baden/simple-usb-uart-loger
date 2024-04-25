@@ -342,6 +342,7 @@ unsigned int buf1_pos = 0;
 
 #define d2h(c) (((c) <= 9)?('0' + (c)):('A' + (c) - 10))
 
+// TODO: Перенести це в відправку у відповідний порт, бо це треба тільки для CDC
 // terminal colors
 uint8_t red[] = "\x1b[31m";
 uint8_t green[] = "\x1b[32m";
@@ -352,6 +353,9 @@ uint8_t cyan[] = "\x1b[36m";
 uint8_t white[] = "\x1b[37m";
 uint8_t reset[] = "\x1b[0m";
 
+void uart_read(uart_inst_t *uart, uint8_t index)
+{
+}
 
 void uart0_irq_fn(void)
 {
@@ -367,13 +371,13 @@ void uart0_irq_fn(void)
         if(buf0_pos > 0) {
           // echo back to both web serial and cdc
           char timestamp[32];
-          snprintf(timestamp, sizeof(timestamp), "[%d] : [", CURRENT_TIME_MS - buf0_start);
-          echo_all(red, sizeof(red) - 1);
+          snprintf(timestamp, sizeof(timestamp), ">[%d] : [", CURRENT_TIME_MS - buf0_start);
+          // echo_all(red, sizeof(red) - 1);
           echo_all((uint8_t *)timestamp, strlen(timestamp));
           echo_all(buf0, buf0_pos);
           char newline[2] = {']', '\r'};
           echo_all(newline, 2);
-          echo_all(reset, sizeof(reset) - 1);
+          // echo_all(reset, sizeof(reset) - 1);
           buf0_pos = 0;
         }
         continue;

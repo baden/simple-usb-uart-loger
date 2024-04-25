@@ -1,13 +1,33 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <title>TinyUSB - WebUSB Serial DualUART Loger</title>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/main.js"></script>
-  </body>
+    <div class="container">
+      <header id="header">
+        <span class="filler">
+          <img src="logo.svg" class="logo" alt="logo" />
+          <h2>DoubleUART Loger</h2>
+        </span>
+        <button id="btn-connect" type="button">Connect</button>
+        <button id="btn-clear" type="button">Clear</button>
+        <!-- <checkbox id="chk-autoscroll" type="checkbox">AutoScroll</checkbox> -->
+        <input type="checkbox" id="autoscroll" name="autoscroll" checked />
+        <label for="autoscroll">Autoscroll</label>
+
+      </header>
+      <div id="log"></div>
+      <footer id="footer">
+        <span id="lines">100строк</span>
+        <span id="status"></span>
+      </footer>
+      <script type="module" src="main.js"></script>
+    </div>
+    <!-- <div id="status">TBD</div> -->
+    </body>
 </html>
