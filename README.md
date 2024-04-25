@@ -25,3 +25,18 @@ https://www.waveshare.com/wiki/RP2040-Zero
 |   GPIO8     | UART1 TX |
 |   GPIO9     | UART1 RX |
 
+
+## Збірка
+
+Не бажаю тягнути все, тому ручками беремо мінімум
+```bash
+git submodule init
+git submodule update
+pushd pico-sdk/lib && git submodule init && git submodule update tinyusb && popd
+```
+
+```bash
+cmake -B build -GNinja
+ninja -C build
+```
+

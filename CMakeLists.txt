@@ -2,35 +2,43 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-include(../pico-uart-bridge/pico-sdk/pico_sdk_init.cmake)
+set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-sdk)
+set(FAMILY rp2040)
 
-include(../pico-uart-bridge/pico-sdk/lib/tinyusb/hw/bsp/family_support.cmake)
+include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
 
-project(webusb_serial)
+include(${PICO_SDK_PATH}/lib/tinyusb/hw/bsp/family_support.cmake)
+
+project(simple_usb_uart_loger)
 
 pico_sdk_init()
 
-
-add_executable(webusb_serial src/main.c src/usb_descriptors.c
-../pico-uart-bridge/pico-sdk/lib/tinyusb/hw/bsp/rp2040/family.c
+add_executable(simple_usb_uart_loger
+	src/main.c
+	src/usb_descriptors.c
+	${PICO_SDK_PATH}/lib/tinyusb/hw/bsp/rp2040/family.c
 )
 
-# target_compile_definitions(webusb_serial PRIVATE
+target_compile_definitions(simple_usb_uart_loger PRIVATE
+	FAMILY=rp2040
+)
+
+# target_compile_definitions(simple_usb_uart_loger PRIVATE
 # 	PICO_DEFAULT_UART_TX_PIN=12
 # 	PICO_DEFAULT_UART_RX_PIN=13
 # )
 
-target_include_directories(webusb_serial PUBLIC
+target_include_directories(simple_usb_uart_loger PUBLIC
 	./src/
-	../pico-uart-bridge/pico-sdk/lib/tinyusb/src
+	${PICO_SDK_PATH}/lib/tinyusb/src
 	)
 
-target_link_libraries(webusb_serial
+target_link_libraries(simple_usb_uart_loger
 	hardware_flash
 	pico_multicore
 	pico_stdlib
 	tinyusb_device)
 
-pico_add_extra_outputs(webusb_serial)
+pico_add_extra_outputs(simple_usb_uart_loger)
 
-# family_configure_device_example(webusb_serial noos)
+# family_configure_device_example(simple_usb_uart_loger noos)
