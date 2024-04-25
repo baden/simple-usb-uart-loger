@@ -103,20 +103,29 @@ function connect() {
   port.connect().then(() => {
     statusDisplay.textContent = '';
     connectButton.textContent = 'Disconnect';
+    document.querySelector('#baudrate').removeAttribute('disabled');
+
+    setTimeout(() => {
+      let baudrate = document.querySelector('#baudrate').value;
+      baudrate = baudrate?baudrate:'6'; // 115200
+      console.log("send baudrate", baudrate);
+      port.send(new TextEncoder('utf-8').encode('\r\n'+baudrate));
+    }, 200);
 
     port.onReceive = data => {
       let textDecoder = new TextDecoder();
-      console.log(textDecoder.decode(data));
-      if (data.getInt8() === 13) {
-        currentReceiverLine = null;
-      } else {
+      console.log("Reveived", textDecoder.decode(data));
+      // if (data.getInt8() === 13) {
+      //   currentReceiverLine = null;
+      // } else {
         appendLines('receiver_lines', textDecoder.decode(data));
         // addLogLine(textDecoder.decode(data));
-      }
+      // }
     };
     port.onReceiveError = error => {
       console.error(error);
     };
+    // port.onC
   }, error => {
     console.error(error);
     toast(error);
@@ -129,6 +138,7 @@ connectButton.addEventListener('click', function() {
     port.disconnect();
     connectButton.textContent = 'Connect';
     statusDisplay.textContent = '';
+    document.querySelector('#baudrate').setAttribute('disabled', 'disabled');
     port = null;
   } else {
     Serial.requestPort().then(selectedPort => {
@@ -140,6 +150,15 @@ connectButton.addEventListener('click', function() {
     });
   }
 });
+
+document.querySelector('#baudrate').addEventListener('change', function(e) {
+  console.log("baudrate", e.target.value);
+  if(port) {
+    port.send(new TextEncoder('utf-8').encode(e.target.value));
+  }
+});
+
+
 
 let start_timestamp = +Date.now();
 let last_timestamp = 0;

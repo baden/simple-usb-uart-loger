@@ -70,6 +70,8 @@ Serial.Port.prototype.connect = function() {
             'value': 0x01,
             'index': this.interfaceNumber}))
         .then(() => {
+            // port.send(new TextEncoder('utf-8').encode(document.querySelector('#baudrate').value));
+            // this.device_.transferOut(this.endpointOut, new TextEncoder('utf-8').encode(document.querySelector('#baudrate').value));
           readLoop();
         });
   };

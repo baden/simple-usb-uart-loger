@@ -74,6 +74,8 @@ enum  {
   BLINK_ALWAYS_OFF  = 0
 };
 
+int uart_baudrate = 115200;
+
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 
 #define CURRENT_TIME_MS to_ms_since_boot(get_absolute_time())
@@ -114,7 +116,7 @@ void init_uart_data()
 	gpio_set_pulls(UART0_RX_PIN, true, false);
 
   /* UART start */
-  uart_init(uart0, 115200);
+  uart_init(uart0, uart_baudrate);
   uart_set_hw_flow(uart0, false, false);
   uart_set_format(uart0, 8, 1, UART_PARITY_NONE);
   uart_set_fifo_enabled(uart0, false);
@@ -132,7 +134,7 @@ void init_uart_data()
   gpio_set_pulls(UART1_RX_PIN, true, false);
 
   /* UART start */
-  uart_init(uart1, 115200);
+  uart_init(uart1, uart_baudrate);
   uart_set_hw_flow(uart1, false, false);
   uart_set_format(uart1, 8, 1, UART_PARITY_NONE);
   uart_set_fifo_enabled(uart1, false);
@@ -169,31 +171,31 @@ int main(void)
   return 0;
 }
 
-// send characters to both CDC and WebUSB
-void echo_all(uint8_t buf[], uint32_t count)
-{
-  // echo to web serial
-  if ( web_serial_connected )
-  {
-    tud_vendor_write(buf, count);
-    tud_vendor_flush();
-  }
+// // send characters to both CDC and WebUSB
+// void echo_all(uint8_t buf[], uint32_t count)
+// {
+//   // echo to web serial
+//   if ( web_serial_connected )
+//   {
+//     tud_vendor_write(buf, count);
+//     tud_vendor_flush();
+//   }
 
-  // echo to cdc
-  if ( tud_cdc_connected() )
-  {
-    for(uint32_t i=0; i<count; i++)
-    {
-      tud_cdc_write_char(buf[i]);
+//   // echo to cdc
+//   if ( tud_cdc_connected() )
+//   {
+//     for(uint32_t i=0; i<count; i++)
+//     {
+//       tud_cdc_write_char(buf[i]);
 
-      if ( buf[i] == '\r' ) tud_cdc_write_char('\n');
-    }
-    tud_cdc_write_flush();
-  }
+//       if ( buf[i] == '\r' ) tud_cdc_write_char('\n');
+//     }
+//     tud_cdc_write_flush();
+//   }
 
-  // echo to uart
-  uart_write_blocking(uart0, buf, count);
-}
+//   // echo to uart
+//   uart_write_blocking(uart0, buf, count);
+// }
 
 //--------------------------------------------------------------------+
 // Device callbacks
@@ -203,6 +205,11 @@ void echo_all(uint8_t buf[], uint32_t count)
 void tud_mount_cb(void)
 {
   blink_interval_ms = BLINK_MOUNTED;
+  // Send hello
+  char buf[64];
+  snprintf(buf, sizeof(buf), "Connected on %d\r\n", uart_baudrate);
+  tud_vendor_write_str(buf);
+  tud_vendor_flush();
 }
 
 // Invoked when device is unmounted
@@ -296,6 +303,9 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_requ
   return false;
 }
 
+void parse_cmd(uint8_t cmd);
+
+
 void webserial_task(void)
 {
   if ( web_serial_connected )
@@ -304,9 +314,13 @@ void webserial_task(void)
     {
       uint8_t buf[64];
       uint32_t count = tud_vendor_read(buf, sizeof(buf));
+      for(uint32_t i=0; i<count; i++)
+      {
+        parse_cmd(buf[i]);
+      }
 
       // echo back to both web serial and cdc
-      echo_all(buf, count);
+      // echo_all(buf, count);
     }
   }
 }
@@ -325,9 +339,13 @@ void cdc_task(void)
       uint8_t buf[64];
 
       uint32_t count = tud_cdc_read(buf, sizeof(buf));
+      for(uint32_t i=0; i<count; i++)
+      {
+        parse_cmd(buf[i]);
+      }
 
       // echo back to both web serial and cdc
-      echo_all(buf, count);
+      // echo_all(buf, count);
     }
   }
 }
@@ -339,6 +357,90 @@ unsigned int buf0_pos = 0;
 uint32_t buf1_start = 0;
 uint8_t buf1[512];
 unsigned int buf1_pos = 0;
+
+void set_baudrate(uint32_t baudrate)
+{
+  char buf[64];
+  uart_baudrate = baudrate;
+  uart_set_baudrate(uart0, uart_baudrate);
+  uart_set_baudrate(uart1, uart_baudrate);
+  snprintf(buf, sizeof(buf), "Baudrate: %d\r\n", uart_baudrate);
+  if(tud_cdc_connected()) {
+    tud_cdc_write_str(buf);
+    tud_cdc_write_flush();
+  }
+  if(web_serial_connected) {
+    tud_vendor_write_str(buf);
+    tud_vendor_flush();
+  }
+  // if(tud_cdc_connected()) tud_cdc_write_str("Baudrate set to 115200\r\n");
+}
+
+void parse_cmd(uint8_t cmd)
+{
+  switch (cmd)
+  {
+    case 'R':
+      // Reset timer
+      buf0_start = CURRENT_TIME_MS;
+      buf0_pos = 0;
+      buf1_start = CURRENT_TIME_MS;
+      buf0_pos = 0;
+      break;
+
+    case 'F':
+      // Flush buffers
+      buf0_pos = 0;
+      buf1_pos = 0;
+      break;
+
+    case '0':
+      // Set UART0 & UART1 baudrates to 2400
+      set_baudrate(2400);
+      break;
+    case '1':
+      // Set UART0 & UART1 baudrates to 4800
+      set_baudrate(4800);
+      break;
+    case '2':
+      // Set UART0 & UART1 baudrates to 9600
+      set_baudrate(9600);
+      break;
+    case '3':
+      // Set UART0 & UART1 baudrates to 19200
+      set_baudrate(19200);
+      break;
+    case '4':
+      // Set UART0 & UART1 baudrates to 38400
+      set_baudrate(38400);
+      break;
+    case '5':
+      // Set UART0 & UART1 baudrates to 57600
+      set_baudrate(57600);
+      break;
+    case '6':
+      // Set UART0 & UART1 baudrates to 115200
+      set_baudrate(115200);
+      break;  
+    case '7':
+      // Set UART0 & UART1 baudrates to 230400
+      set_baudrate(230400);
+      break;
+    case '8':
+      // Set UART0 & UART1 baudrates to 460800
+      set_baudrate(460800);
+      break;
+    case '9':
+      // Set UART0 & UART1 baudrates to 921600
+      set_baudrate(921600);
+      break;
+
+    default:
+      break;
+  }
+  // uart_set_baudrate(uart0, bit_rate);
+}
+
 
 #define d2h(c) (((c) <= 9)?('0' + (c)):('A' + (c) - 10))
 
@@ -497,10 +599,16 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)
   (void) itf;
 
   // connected
-  if ( dtr && rts )
+  if ( tud_cdc_connected() && dtr && rts )
   {
     // print initial message when connected
-    tud_cdc_write_str("\r\nTinyUSB WebUSB device example\r\n");
+    tud_cdc_write_str(
+      "\r\n"
+      "TinyUSB WebUSB device example\r\n"
+      "[R]Reset timer    [F]Flush buffers   [0]2400 [1]4800 [2]9600 [3]19200 [4]38400 [5]57600 [6]115200 [7]230400 \r\n"
+      "\r\n"
+    );
+    // tud_cdc_write_flush();
   }
 }
 
