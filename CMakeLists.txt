@@ -15,6 +15,7 @@ pico_sdk_init()
 
 add_executable(simple_usb_uart_loger
 	src/main.c
+	src/led.c
 	src/usb_descriptors.c
 	${PICO_SDK_PATH}/lib/tinyusb/hw/bsp/rp2040/family.c
 )
