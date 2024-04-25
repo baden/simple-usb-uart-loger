@@ -48,16 +48,17 @@ Serial.getPorts().then(ports => {
 // console.log("connectButton", connectButton);
 
 function addLogLine(logtext) {
-  let timestamp = +Date.now() - start_timestamp;
+  // let timestamp = +Date.now() - start_timestamp;
+  // const delta = timestamp - last_timestamp;
+  // last_timestamp = timestamp;
+  // const hours = Math.floor(timestamp / 3600000);
+  // const minutes = Math.floor(timestamp / 60000) % 60;
+  // const seconds = Math.floor(timestamp / 1000) % 60;
+  // const milliseconds = timestamp % 1000;
   const line = document.createElement('p');
-  const delta = timestamp - last_timestamp;
-  last_timestamp = timestamp;
-  const hours = Math.floor(timestamp / 3600000);
-  const minutes = Math.floor(timestamp / 60000) % 60;
-  const seconds = Math.floor(timestamp / 1000) % 60;
-  const milliseconds = timestamp % 1000;
-  line.innerHTML = `[${hours}:${minutes}:${seconds}.${milliseconds}+${delta}ms] ${logtext}`;
-//   line_in.className = 'line-in';
+  // line.innerHTML = `[${hours}:${minutes}:${seconds}.${milliseconds}+${delta}ms] ${logtext}`;
+  line.innerHTML = `${logtext}`;
+  line.className = (logtext.startsWith('>'))?'line-in':'line-out';
   log.appendChild(line);
 
   // var objDiv = document.getElementById("your_div");
@@ -79,6 +80,7 @@ function addLogLine(logtext) {
 let currentReceiverLine;
 
 function appendLines(linesId, text) {
+  console.log("appendLines", linesId, text);
   const lines = text.split('\r');
     for (let i = 0; i < lines.length; i++) {
       addLogLine(lines[i]);
@@ -108,8 +110,8 @@ function connect() {
       if (data.getInt8() === 13) {
         currentReceiverLine = null;
       } else {
-        // appendLines('receiver_lines', textDecoder.decode(data));
-        addLogLine(textDecoder.decode(data));
+        appendLines('receiver_lines', textDecoder.decode(data));
+        // addLogLine(textDecoder.decode(data));
       }
     };
     port.onReceiveError = error => {

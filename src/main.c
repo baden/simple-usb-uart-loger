@@ -78,8 +78,7 @@ static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 
 #define CURRENT_TIME_MS to_ms_since_boot(get_absolute_time())
 
-// #define URL  "example.tinyusb.org/webusb-serial/index.html"
-#define URL  "baden.github.io/simple-usb-uart-loger/index.html"
+#define URL  "example.tinyusb.org/webusb-serial/index.html"
 
 const tusb_desc_webusb_url_t desc_url =
 {
@@ -356,49 +355,96 @@ uint8_t reset[] = "\x1b[0m";
 
 void uart_read(uart_inst_t *uart, uint8_t index)
 {
-  uint8_t *buf = index == 0 ? buf0 : buf1;
-  unsigned int *buf_pos = index == 0 ? &buf0_pos : &buf1_pos;
-  uint32_t buf_start = index == 0 ? buf0_start : buf1_start;
+}
 
-  // Get all available data from UART
-  while (uart_is_readable(uart)) {
-    uint8_t c = uart_getc(uart);
-    if(c == '\n') continue;
-    if(c == '\r') {
-      if(*buf_pos > 0) {
-        // echo back to both web serial and cdc
-        char timestamp[32];
-        snprintf(timestamp, sizeof(timestamp), ">[%d] : [", CURRENT_TIME_MS - buf_start);
-        // echo_all(red, sizeof(red) - 1);
-        echo_all((uint8_t *)timestamp, strlen(timestamp));
-        echo_all(buf, *buf_pos);
-        char newline[2] = {']', '\r'};
-        echo_all(newline, 2);
-        // echo_all(reset, sizeof(reset) - 1);
-        *buf_pos = 0;
-      }
-      continue;
-    }
-    if(*buf_pos < sizeof(buf0)) {
-      if(c < ' ' && *buf_pos < (sizeof(buf0) - 5)) {
-        buf[*buf_pos++] = '\\';
-        buf[*buf_pos++] = 'x';
-        buf[*buf_pos++] = d2h(c >> 4);
-        buf[*buf_pos++] = d2h(c & 0xf);
-      }
-      buf[*buf_pos++] = c;
-    }
+void tud_cdc_write_line(const char *p, size_t len)
+{
+  for(uint32_t i=0; i<len; i++)
+  {
+    tud_cdc_write_char(p[i]);
+    if ( p[i] == '\r' ) tud_cdc_write_char('\n');
   }
+  // tud_cdc_write_flush();
 }
 
 void uart0_irq_fn(void)
 {
-  uart_read(uart0, 0);
+  // Get all available data from UART
+  while (uart_is_readable(uart0)) {
+    uint8_t c = uart_getc(uart0);
+    if(c == '\n') continue;
+    if(c == '\r') {
+      if(buf0_pos > 0) {
+        // echo back to both web serial and cdc
+        uint16_t ts = CURRENT_TIME_MS - buf0_start;
+        int hours = ts / 3600000;
+        int minutes = (ts % 3600000) / 60000;
+        int seconds = (ts % 60000) / 1000;
+        int milliseconds = ts % 1000;
+        char timestamp[64];
+        size_t l = snprintf(timestamp, sizeof(timestamp),
+          ">[%02d:%02d:%02d.%03d] : [", hours, minutes, seconds, milliseconds
+        );
+        // echo_all(red, sizeof(red) - 1);
+
+        // echo_all((uint8_t *)timestamp, strlen(timestamp));
+        // echo_all(buf0, buf0_pos);
+        char newline[2] = {']', '\r'};
+        // echo_all(newline, 2);
+        // echo_all(reset, sizeof(reset) - 1);
+
+        if(web_serial_connected)
+        {
+          tud_vendor_write((uint8_t *)timestamp, strlen(timestamp));
+          tud_vendor_write(buf0, buf0_pos);
+          tud_vendor_write(newline, 2);
+          tud_vendor_flush();
+        }
+
+        if ( tud_cdc_connected() )
+        {
+          tud_cdc_write_line(red, sizeof(red) - 1);
+          tud_cdc_write_line(timestamp, strlen(timestamp));
+          tud_cdc_write_line((const char *)buf0, buf0_pos);
+          tud_cdc_write_line(newline, 2);
+          tud_cdc_write_line(reset, sizeof(reset) - 1);
+          tud_cdc_write_flush();
+        }
+
+
+        buf0_pos = 0;
+      }
+      continue;
+    }
+    if(buf0_pos < sizeof(buf0)) {
+      if(c < ' ' && buf0_pos < (sizeof(buf0) - 5)) {
+        buf0[buf0_pos++] = '\\';
+        buf0[buf0_pos++] = 'x';
+        buf0[buf0_pos++] = d2h(c >> 4);
+        buf0[buf0_pos++] = d2h(c & 0xf);
+      }
+      buf0[buf0_pos++] = c;
+    }
+  }
 }
 
 void uart1_irq_fn(void)
 {
-  uart_read(uart1, 1);
+  // Get all available data from UART
+  while ( uart_is_readable(uart1) )
+  {
+    uint8_t buf[64];
+    size_t pos = 0;
+    while (uart_is_readable(uart1) &&
+           (pos < sizeof(buf))) {
+      buf[pos++] = uart_getc(uart1);
+    }
+
+    // uint32_t count = uart_read_blocking(uart1, buf, sizeof(buf));
+
+    // echo back to both web serial and cdc
+    echo_all(buf, pos);
+  }
 }
 
 
