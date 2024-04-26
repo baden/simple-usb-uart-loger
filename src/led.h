@@ -16,5 +16,6 @@ enum  {
   BLINK_ALWAYS_OFF  = 0
 };
 
+void led_init(void);
 void led_blinking_task(void);
 void led_set_interval(uint32_t interval_ms);

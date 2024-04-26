@@ -97,6 +97,7 @@ void webserial_task(void);
 int main(void)
 {
   board_init();
+  led_init();
   init_uart();
 
   // init device stack on configured roothub port
@@ -113,7 +114,7 @@ int main(void)
   return 0;
 }
 
-// // send characters to both CDC and WebUSB
+// // send characters to both CDC and WebUSB and UART?
 // void echo_all(uint8_t buf[], uint32_t count)
 // {
 //   // echo to web serial
