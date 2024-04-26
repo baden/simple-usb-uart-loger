@@ -47,7 +47,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <hardware/irq.h>
-#include <hardware/uart.h>
+// #include <hardware/uart.h>
 #include <hardware/structs/sio.h>
 #include <pico/multicore.h>
 #include <pico/stdlib.h>
@@ -56,6 +56,7 @@
 #include "tusb.h"
 #include "usb_descriptors.h"
 #include "led.h"
+#include "uart.h"
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
@@ -82,65 +83,21 @@ static bool web_serial_connected = false;
 void cdc_task(void);
 void webserial_task(void);
 
-#define UART0_TX_PIN 12
-#define UART0_RX_PIN 13
-#define UART1_TX_PIN 8
-#define UART1_RX_PIN 9
+// #define UART0_TX_PIN 12
+// #define UART0_RX_PIN 13
+// #define UART1_TX_PIN 8
+// #define UART1_RX_PIN 9
 
-void uart0_irq_fn(void);
-void uart1_irq_fn(void);
+// void uart0_irq_fn(void);
+// void uart1_irq_fn(void);
 
-
-
-void init_uart_data()
-{
-  /* Pinmux */
-	gpio_set_function(UART0_TX_PIN, GPIO_FUNC_UART);
-	gpio_set_pulls(UART0_TX_PIN, true, false);
-	gpio_set_function(UART0_RX_PIN, GPIO_FUNC_UART);
-	gpio_set_pulls(UART0_RX_PIN, true, false);
-
-  /* UART start */
-  uart_init(uart0, uart_baudrate);
-  uart_set_hw_flow(uart0, false, false);
-  uart_set_format(uart0, 8, 1, UART_PARITY_NONE);
-  uart_set_fifo_enabled(uart0, false);
-
-  /* UART RX Interrupt */
-  irq_set_exclusive_handler(UART0_IRQ, uart0_irq_fn);
-  irq_set_enabled(UART0_IRQ, true);
-  uart_set_irq_enables(uart0, true, false);
-
-  // UART1
-  /* Pinmux */
-  gpio_set_function(UART1_TX_PIN, GPIO_FUNC_UART);
-  gpio_set_pulls(UART1_TX_PIN, true, false);
-  gpio_set_function(UART1_RX_PIN, GPIO_FUNC_UART);
-  gpio_set_pulls(UART1_RX_PIN, true, false);
-
-  /* UART start */
-  uart_init(uart1, uart_baudrate);
-  uart_set_hw_flow(uart1, false, false);
-  uart_set_format(uart1, 8, 1, UART_PARITY_NONE);
-  uart_set_fifo_enabled(uart1, false);
-
-  /* UART RX Interrupt */
-  irq_set_exclusive_handler(UART1_IRQ, uart1_irq_fn);
-  irq_set_enabled(UART1_IRQ, true);
-  uart_set_irq_enables(uart1, true, false);
-
-  // Enable UART IRQ
-//  irq_set_enabled(UART0_IRQ, true);
-//  irq_set_enabled(UART1_IRQ, true);
-
-}
 
 
 /*------------- MAIN -------------*/
 int main(void)
 {
   board_init();
-  init_uart_data();
+  init_uart();
 
   // init device stack on configured roothub port
   tud_init(BOARD_TUD_RHPORT);
