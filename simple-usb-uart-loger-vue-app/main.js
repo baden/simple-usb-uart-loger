@@ -57,7 +57,7 @@ function addLogLine(logtext) {
   // const milliseconds = timestamp % 1000;
   const line = document.createElement('p');
   // line.innerHTML = `[${hours}:${minutes}:${seconds}.${milliseconds}+${delta}ms] ${logtext}`;
-  line.innerHTML = `${logtext}`;
+  line.innerText = `${logtext}`;
   line.className = (logtext.startsWith('>'))?'line-in':'line-out';
   log.appendChild(line);
 

@@ -17,6 +17,7 @@ add_executable(simple_usb_uart_loger
 	src/main.c
 	src/led.c
 	src/uart.c
+	src/usb.c
 	src/usb_descriptors.c
 	pio-ws2812-rp2040/sdk/ws2812.c
 	${PICO_SDK_PATH}/lib/tinyusb/hw/bsp/rp2040/family.c

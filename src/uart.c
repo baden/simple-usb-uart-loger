@@ -3,6 +3,7 @@
 #include <pico/stdlib.h>
 
 #include "uart.h"
+#include "usb.h"
 
 #define CURRENT_TIME_MS to_ms_since_boot(get_absolute_time())
 
@@ -33,7 +34,7 @@ const uart_id_t UART_ID[2] = {
 
 uart_data_t UART_DATA[2];
 
-cdc_line_coding_t usb_lc;
+// cdc_line_coding_t usb_lc;
 
 static inline uint databits_usb2uart(uint8_t data_bits)
 {
@@ -84,17 +85,16 @@ static void init_uart_data(uint8_t itf)
 	gpio_set_pulls(ui->rx_pin, true, false);
 
 	/* UART LC */
-	ud->uart_lc.bit_rate = usb_lc.bit_rate;
-	ud->uart_lc.data_bits = usb_lc.data_bits;
-	ud->uart_lc.parity = usb_lc.parity;
-	ud->uart_lc.stop_bits = usb_lc.stop_bits;
+	ud->uart_lc.bit_rate = DEF_BIT_RATE;
+	ud->uart_lc.data_bits = DEF_STOP_BITS;
+	ud->uart_lc.parity = DEF_PARITY;
+	ud->uart_lc.stop_bits = DEF_DATA_BITS;
 
 	/* Buffer */
 	ud->uart_pos = 0;
-	ud->line_pos = 0;
 
 	/* Mutex */
-	mutex_init(&ud->lc_mtx);
+	// mutex_init(&ud->lc_mtx);
 	mutex_init(&ud->uart_mtx);
 	// mutex_init(&ud->usb_mtx);
 
@@ -130,6 +130,7 @@ void init_uart()
     init_uart_data(1);
 }
 
+#if 0
 #define PICO_STDIO_USB_STDOUT_TIMEOUT_US 1000000
 
 static void flush_line(uint8_t itf)
@@ -228,6 +229,7 @@ void uart_task(void)
 	uart_n_task(0);
 	uart_n_task(1);
 }
+#endif
 
 static inline void uart_read_bytes(uint8_t itf)
 {
@@ -235,12 +237,28 @@ static inline void uart_read_bytes(uint8_t itf)
 	const uart_id_t *ui = &UART_ID[itf];
 
 	if (uart_is_readable(ui->inst)) {
-		mutex_enter_blocking(&ud->uart_mtx);
+		mutex_enter_blocking(&ud->uart_mtx);		// TODO: Думаю це не потрібно.
 
 		while (uart_is_readable(ui->inst) &&
 		       (ud->uart_pos < ISR_BUFFER_SIZE)) {
-			ud->uart_buffer[ud->uart_pos] = uart_getc(ui->inst);
-			ud->uart_pos++;
+			uint8_t c = uart_getc(ui->inst);
+			if(c == '\n') continue;
+			else if(c == '\r') {
+				usb_push_line(itf, ud->uart_buffer, ud->uart_pos, ud->timestamp);
+				ud->uart_pos = 0;
+				continue;
+			}
+			else {
+				if(ud->uart_pos == 0) {
+					ud->timestamp = CURRENT_TIME_MS;
+				}
+				if(ud->uart_pos < ISR_BUFFER_SIZE) {
+					ud->uart_buffer[ud->uart_pos++] = c;
+				}
+			}
+
+			// ud->uart_buffer[ud->uart_pos] = uart_getc(ui->inst);
+			// ud->uart_pos++;
 		}
 
 		mutex_exit(&ud->uart_mtx);
@@ -384,4 +402,12 @@ void uart_reset()
 void uart_flush()
 {
 
+}
+
+void uart_baudrate(uint32_t baudrate)
+{
+	usb_lc.bit_rate = baudrate;
+  	uart_set_baudrate(uart0, usb_lc.bit_rate);
+  	uart_set_baudrate(uart1, usb_lc.bit_rate);
+	// TODO: Send baudrate change message to USB 
 }
